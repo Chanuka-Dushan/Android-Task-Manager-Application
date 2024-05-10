@@ -1,60 +1,107 @@
 package com.example.madtaskapp.fragment
 
+import android.app.AlertDialog
 import android.os.Bundle
+import android.provider.ContactsContract.CommonDataKinds.Note
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
+import androidx.lifecycle.Lifecycle
+import androidx.navigation.findNavController
+import com.example.madtaskapp.MainActivity
 import com.example.madtaskapp.R
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
+import com.example.madtaskapp.databinding.FragmentEditTaskBinding
+import com.example.madtaskapp.model.Task
+import com.example.madtaskapp.viewmodel.TaskViewMode
 
-/**
- * A simple [Fragment] subclass.
- * Use the [EditTaskFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
-class EditTaskFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+class EditTaskFragment : Fragment(R.layout.fragment_edit_task),MenuProvider {
+    private var editTaskBinding:FragmentEditTaskBinding?=null
+    private val binding get() = editTaskBinding!!
+    private lateinit var taskViewModel: TaskViewMode
+    private lateinit var currentTask:Task
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_edit_task, container, false)
+        editTaskBinding=FragmentEditTaskBinding.inflate(inflater,container,false)
+
+
+        return binding.root
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment EditTaskFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            EditTaskFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
-                }
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+
+        taskViewModel = (activity as MainActivity).taskViewModel
+
+        // Retrieving the arguments safely
+        currentTask = requireArguments().getParcelable("task")!!
+
+
+
+        binding.editTaskTitle.setText(currentTask.taskTitle)
+        binding.editTaskDesc.setText(currentTask.taskDesc)
+
+        binding.editTaskFab.setOnClickListener {
+            val taskTitle = binding.editTaskTitle.text.toString().trim()
+            val taskDescription = binding.editTaskDesc.text.toString().trim()
+
+            if (taskTitle.isNotEmpty()) {
+                val updatedTask = Task(currentTask.id, taskTitle, taskDescription)
+                taskViewModel.updateTask(updatedTask)
+                view.findNavController().popBackStack(R.id.homeFragment, false)
+            } else {
+                Toast.makeText(context, "Please Enter Task Title", Toast.LENGTH_SHORT).show()
             }
+        }
     }
+
+    private fun deleteTask(){
+        AlertDialog.Builder(activity).apply{
+            setTitle("Delete Task")
+            setMessage("Do you want to Delete this Task ?")
+            setPositiveButton("Delete"){_,_ ->
+                taskViewModel.deleteTask(currentTask)
+                Toast.makeText(context,"Task Deleted",Toast.LENGTH_SHORT).show()
+                view?.findNavController()?.popBackStack(R.id.homeFragment,false)
+            }
+            setNegativeButton("Cancel",null)
+
+        }.create().show()
+
+    }
+
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menu.clear()
+        menuInflater.inflate(R.menu.edit_task,menu)
+    }
+
+    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        return when(menuItem.itemId){
+            R.id.deleteMenu->{
+                deleteTask()
+                true
+            }else->false
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        editTaskBinding=null
+    }
+
 }
