@@ -22,6 +22,9 @@
         <action
             android:id="@+id/action_homeFragment_to_editTaskFragment"
             app:destination="@id/editTaskFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_editTaskFragment2"
+            app:destination="@id/editTaskFragment" />
     </fragment>
     <fragment
         android:id="@+id/editTaskFragment"
@@ -34,5 +37,6 @@
             android:name="task"
             app:argType="com.example.madtaskapp.model.Task"
             app:nullable="true"/>
+
     </fragment>
 </navigation>
